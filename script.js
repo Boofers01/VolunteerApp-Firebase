@@ -241,7 +241,24 @@ function openCard(card) {
     attachmentsTab.classList.add("tab-content");
     const addAttachmentButton = document.createElement("button");
     addAttachmentButton.textContent = "Add Attachment";
+    addAttachmentButton.addEventListener("click", () => handleAddAttachment(cardId));
     attachmentsTab.appendChild(addAttachmentButton);
+
+    // Create and append the list for attachments
+    const attachmentsList = document.createElement("ul");
+    attachmentsList.id = `attachments-list-${cardId}`;
+    attachmentsTab.appendChild(attachmentsList);
+
+    // If there are already attachments for this card, display them
+    if (cardData.attachments && cardData.attachments.length > 0) {
+        cardData.attachments.forEach(attachment => {
+            const attachmentItem = document.createElement("li");
+            attachmentItem.textContent = attachment.name;
+            // Add "Set as Profile Picture" button here (implementation will come later)
+            // ...
+            attachmentsList.appendChild(attachmentItem);
+        });
+    }
 
     // Append the Attachments tab content to the modal content
     modalContent.appendChild(attachmentsTab);
@@ -271,10 +288,6 @@ function openCard(card) {
         document.getElementById(tabId).style.display = "block";
         event.currentTarget.classList.add("active");
     };
-
-    // Display the modal
-    modal.style.display = "block";
-}
 
 // Function to close the card modal
 function closeModal() {
@@ -539,5 +552,6 @@ function handleAddAttachment(cardId) {
     // Trigger the file input dialog
     fileInput.click();
 }
-    }
+
+    modal.style.display = "block";
 }
