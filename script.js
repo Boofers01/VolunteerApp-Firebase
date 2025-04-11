@@ -529,21 +529,50 @@ function handleAddAttachment(cardId) {
             const attachmentsList = document.getElementById(`attachments-list-${cardId}`);
             if (attachmentsList) {
                 // Loop through the selected files and add them to the attachments list
-                for (const file of files) {
-                    const attachmentItem = document.createElement("li");
-                    attachmentItem.textContent = file.name;
+               for (const file of files) {
+                const attachmentItem = document.createElement("li");
+                attachmentItem.textContent = file.name;
 
-                    // Add a delete button for the attachment
-                    const deleteButton = document.createElement("button");
-                    deleteButton.textContent = "Delete";
-                    deleteButton.classList.add("delete-attachment-button");
-                    deleteButton.addEventListener("click", () => {
-                        attachmentItem.remove();
-                        // TODO: Remove attachment from data (if implemented)
-                    });
+                // Add "Set as Profile Picture" button
+                const setProfilePicButton = document.createElement("button");
+                setProfilePicButton.textContent = "Set as Profile Picture";
+                setProfilePicButton.classList.add("set-profile-pic-button");
+                setProfilePicButton.addEventListener("click", () => {
+                    handleSetProfilePicture(cardId, file.name);
+                });
 
-                    attachmentItem.appendChild(deleteButton);
-                    attachmentsList.appendChild(attachmentItem);
+                // Add a delete button for the attachment
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.classList.add("delete-attachment-button");
+                deleteButton.addEventListener("click", () => {
+                    attachmentItem.remove();
+                    handleDeleteAttachment(cardId, file.name);
+                });
+
+                attachmentItem.appendChild(setProfilePicButton);
+                attachmentItem.appendChild(deleteButton);
+                attachmentsList.appendChild(attachmentItem);
+            }
+        }
+    });
+
+    // Trigger the file input dialog
+    fileInput.click();
+}
+
+// Function to handle setting a profile picture
+function handleSetProfilePicture(cardId, attachmentName) {
+    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    for (const list of lists) {
+        const card = list.cards.find(c => c.id === cardId);
+        if (card) {
+            card.profilePicture = attachmentName;
+            // Update the card element on the board if it exists
+            const cardElement = document.getElementById(cardId);
+            if (cardElement) {
+                // Find the element that currently displays the card name and insert the image before it
+                const cardNameElement = cardElement.querySelector(".card-name");
                 }
             }
         }
