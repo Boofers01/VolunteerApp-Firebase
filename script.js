@@ -52,8 +52,6 @@ function createList() {
 
     saveLists(); // Save the new list to local storage
 
-    // Make the list draggable
-    list.setAttribute("draggable", "true");
 
     list.addEventListener("dragstart", (e) => {
         // Add a dragging class and set the data being transferred
@@ -82,8 +80,90 @@ function createList() {
         const draggedListId = e.dataTransfer.getData("text/plain");
         const draggedList = document.getElementById(draggedListId);
         // Get the list that is being dropped on
-        const targetList = e.target.closest(".list");
-        if (targetList && draggedList !== targetList) board.insertBefore(draggedList, targetList);
+        const targetList = e.target.closest(".list")
+        if (targetList && draggedList !== targetList) {
+            board.insertBefore(draggedList, targetList);
+            saveLists()
+        }
+    });
+}
+
+// Function to add a card to a list
+function addCard(listId) {
+    // Get the cards container for the specified list
+    const list = document.getElementById(listId);
+    const cardsContainer = list.querySelector(".cards-container");
+
+    // Generate a unique ID for the new card
+    const cardId = "card-" + Date.now();
+
+    // Create the card element
+    const card = document.createElement("div");
+    card.classList.add("card");
+    card.id = cardId;
+
+    // Create the card content
+    const cardContent = document.createElement("div");
+    cardContent.classList.add("card-content");
+    cardContent.innerHTML = `
+        <h4 class="card-name">Volunteer Name</h4>
+        <p class="card-email">volunteer@email.com</p>
+        <p class="card-phone">123-456-7890</p>
+    `;
+
+    // Create a delete button for the card
+    const deleteCardButton = document.createElement("span");
+    deleteCardButton.textContent = "x";
+    deleteCardButton.classList.add("delete-card-button");
+    deleteCardButton.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent card from opening when deleting
+        card.remove(); // Remove the card from the DOM
+        saveLists(); // Update local storage
+    });
+
+    // Append the card content and delete button to the card
+    card.appendChild(cardContent);
+    card.appendChild(deleteCardButton);
+
+    // Append the new card to the cards container
+    cardsContainer.appendChild(card);
+
+    // Make the card draggable
+    card.setAttribute("draggable", "true");
+
+    card.addEventListener("dragstart", (e) => {
+        // Add a dragging class, set the data being transferred, and reduce opacity
+        e.stopPropagation()
+        e.target.classList.add("dragging");
+        e.dataTransfer.setData("text/plain", e.target.id);
+        e.dataTransfer.effectAllowed = "move";
+        e.target.style.opacity = "0.5";
+    });
+
+    card.addEventListener("dragend", (e) => {
+        // Remove the dragging class and reset the opacity
+        e.target.classList.remove("dragging");
+        e.target.style.opacity = "1";
+        saveLists(); // Save the new order of cards
+    });
+
+    // Add event listeners to the cards container to handle the drop
+    cardsContainer.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    });
+
+    cardsContainer.addEventListener("drop", (e) => {
+        e.preventDefault();
+        // Get the ID of the card being dragged
+        const draggedCardId = e.dataTransfer.getData("text/plain");
+        const draggedCard = document.getElementById(draggedCardId);
+        // Get the card that is being dropped on
+        const targetCard = e.target.closest(".card");
+        if (targetCard && draggedCard !== targetCard) {
+            cardsContainer.insertBefore(draggedCard, targetCard);
+            saveLists();
+        }
     });
 }
 
@@ -156,8 +236,15 @@ function loadLists() {
                 list.appendChild(cardsContainer);
 
                 board.appendChild(list);
+                // Create "Add Card" button and append it to the list
+                const addCardButton = document.createElement("button");
+                addCardButton.textContent = "Add Card";
+                addCardButton.classList.add("add-card-button");
+                addCardButton.addEventListener("click", () => addCard(list.id));
+                list.appendChild(addCardButton);
 
-                // Make the list draggable
+
+
                 list.setAttribute("draggable", "true");
 
                 list.addEventListener("dragstart", (e) => {
@@ -185,6 +272,17 @@ function loadLists() {
             const draggedList = document.getElementById(draggedListId);
             const targetList = e.target.closest(".list");
             if (targetList && draggedList !== targetList) board.insertBefore(draggedList, targetList);
+            saveLists()
+        });
+        // Load cards for each list
+        lists.forEach(listData => {
+            const listElement = document.getElementById(listData.id);
+            if (listElement && listData.cards) {
+                const cardsContainer = listElement.querySelector(".cards-container");
+                listData.cards.forEach(cardData => {
+                    addCardToList(cardsContainer, cardData);
+                });
+            }
         });
     }
 }
