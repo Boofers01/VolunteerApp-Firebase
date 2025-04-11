@@ -41,6 +41,7 @@ function createList() {
     deleteListButton.addEventListener("click", () => {
         list.remove(); // Remove the list from the DOM
         saveLists(); // Update local storage
+        console.log(`List ${listId} removed.`); // Log the removal
     });
 
     // Append the title and delete button to the list header
@@ -60,14 +61,17 @@ function createList() {
 
     try {
         saveLists(); // Save the new list to local storage
+        console.log(`List ${listId} saved to local storage.`); // Log the saving
     } catch (error) {
         console.error("Error saving lists after creating a new list:", error);
     }
 
 
     list.addEventListener("dragstart", (e) => {
+        console.log(`List ${e.target.id} drag started.`); // Log drag start
         // Add a dragging class and set the data being transferred
         e.target.classList.add("dragging");
+        // Set data for transfer to allow dropping
         e.dataTransfer.setData("text/plain", e.target.id);
         // Reduce the opacity of the list being dragged
         e.target.style.opacity = "0.5";
@@ -75,6 +79,7 @@ function createList() {
 
     list.addEventListener("dragend", (e) => {
         // Remove the dragging class and reset the opacity
+        console.log(`List ${e.target.id} drag ended.`); // Log drag end
         e.target.classList.remove("dragging");
         e.target.style.opacity = "1";
         try {
@@ -92,6 +97,7 @@ function createList() {
 
     board.addEventListener("drop", (e) => {
         e.preventDefault();
+        console.log("List dropped on board."); // Log the drop event
         // Get the ID of the list being dragged
         const draggedListId = e.dataTransfer.getData("text/plain");
         const draggedList = document.getElementById(draggedListId);
@@ -99,6 +105,7 @@ function createList() {
         const targetList = e.target.closest(".list")
         if (targetList && draggedList !== targetList) {
             board.insertBefore(draggedList, targetList);
+            console.log(`List ${draggedListId} reordered before list ${targetList.id}.`); // Log the reorder
             saveLists()
         }
     });
@@ -570,7 +577,7 @@ function getCardData(cardId) {
     return null;
 }
 
-// Function to handle adding attachments
+// Function to handle adding attachments to a card
 function handleAddAttachment(cardId) {
     // Create an input element for file selection
     const fileInput = document.createElement("input");
@@ -583,13 +590,13 @@ function handleAddAttachment(cardId) {
         if (files.length > 0) {
             const attachmentsList = document.getElementById(`attachments-list-${cardId}`);
             if (attachmentsList) {
-                 // Save the file details to local storage
-                 const lists = JSON.parse(localStorage.getItem("lists")) || [];
-                 let cardFound = false;
-                 for (const list of lists) {
-                     for (const card of list.cards) {
-                         if (card.id === cardId) {
-                             card.attachments = card.attachments || [];
+                // Save the file details to local storage
+                const lists = JSON.parse(localStorage.getItem("lists")) || [];
+                let cardFound = false;
+                for (const list of lists) {
+                    for (const card of list.cards) {
+                        if (card.id === cardId) {
+                            card.attachments = card.attachments || [];
                              for (const file of files) {
                                  card.attachments.push({ name: file.name }); // Store attachment name
                                  // Create list item for the attachment
@@ -666,7 +673,7 @@ function createMasterChecklistEditor() {
     editor.innerHTML = `
         <h2>Edit Master Checklist</h2>
         <ul id="masterChecklistItems"></ul>
-        <input type="text" id="newChecklistItemText" placeholder="New checklist item">
+        <input type="text" id="newChecklistItemText" placeholder="New checklist item">        
         <button onclick="addMasterChecklistItem()">Add Item</button>
     `;
     document.body.insertBefore(editor, document.getElementById("board"));
@@ -692,9 +699,11 @@ function renderMasterChecklistItems() {
         const listItem = document.createElement("li");
         listItem.innerHTML = `
             <span class="item-text" contenteditable="true">${item.text}</span>
-            <button onclick="toggleDateBox(${index}, 'scheduled')" class="${item.scheduled ? 'active' : ''}">Scheduled</button>
-            <button onclick="toggleDateBox(${index}, 'completed')" class="${item.completed ? 'active' : ''}">Completed</button>
-            <button onclick="deleteMasterChecklistItem(${index})">Delete</button>
+            <div>
+                <button onclick="toggleDateBox(${index}, 'scheduled')" class="${item.scheduled ? 'active' : ''}">Scheduled</button>
+                <button onclick="toggleDateBox(${index}, 'completed')" class="${item.completed ? 'active' : ''}">Completed</button>
+                <button onclick="deleteMasterChecklistItem(${index})">Delete</button>
+            </div>
             <span class="drag-handle">☰</span>
         `;
         itemsList.appendChild(listItem);
@@ -749,9 +758,12 @@ function renderMasterChecklistItems() {
 // Function to toggle the visibility of date boxes
 function toggleDateBox(index, type) {
     masterChecklist[index][type] = !masterChecklist[index][type];
-    renderMasterChecklistItems();
+    renderMasterChecklistItems(); // Re-render the checklist to reflect changes
+    console.log(`Date box '${type}' toggled for item at index ${index}. New state:`, masterChecklist[index][type]); // Log the action
     saveMasterChecklist();
 }
+
+
 
 // Function to delete an item from the master checklist
 function deleteMasterChecklistItem(index) {
@@ -775,7 +787,6 @@ function loadMasterChecklist() {
 createMasterChecklistEditor();
 
 // Function to render the checklist in a card
-
 function renderChecklist(checklistItems) {
     const checklistDiv = document.createElement("div");
     if (checklistItems && checklistItems.length > 0) {
@@ -786,7 +797,12 @@ function renderChecklist(checklistItems) {
             checkbox.type = "checkbox";
             checkbox.checked = item.checked || false;
             checkbox.addEventListener("change", () => {
-                item.checked = checkbox.checked;
+                // Update the checked state and log the change
+                console.log(`Checklist item at index ${index} toggled to ${checkbox.checked}.`);
+                saveCards();
+                if (item.checked !== checkbox.checked) {
+                    item.checked = checkbox.checked;
+                }
             });
             const itemText = document.createElement("span");
             itemText.textContent = item.text;
@@ -794,11 +810,11 @@ function renderChecklist(checklistItems) {
             listItem.appendChild(itemText);
 
             // Add date boxes if scheduled or completed is true
-            if (item.scheduled) {
-                const scheduledDateBox = createDateBox("Scheduled");
-                listItem.appendChild(scheduledDateBox);
-            }
-            if (item.completed) {
+             if (item.scheduled) {
+                 const scheduledDateBox = createDateBox("Scheduled", index, checklistItems);
+                 listItem.appendChild(scheduledDateBox);
+             }
+             if (item.completed) {
                 const completedDateBox = createDateBox("Completed");
                 listItem.appendChild(completedDateBox);
             }
@@ -813,7 +829,7 @@ function renderChecklist(checklistItems) {
 }
 
 // Function to create a date box with a date picker
-function createDateBox(labelText) {
+function createDateBox(labelText, index, checklistItems) {
     const dateBox = document.createElement("div");
     dateBox.classList.add("date-box");
     const label = document.createElement("label");
@@ -821,6 +837,11 @@ function createDateBox(labelText) {
     const dateInput = document.createElement("input");
     dateInput.type = "date";
     const button = document.createElement("button");
+    if (checklistItems && checklistItems[index] && checklistItems[index].hasOwnProperty(labelText.toLowerCase())) {
+        dateInput.value = checklistItems[index][labelText.toLowerCase()] || "";
+    }
+    dateInput.addEventListener("change", () => handleDateChange(index, labelText, dateInput.value, checklistItems));
+
     button.textContent = "Select Date";
     button.addEventListener("click", () => {
         dateInput.showPicker(); // Open the date picker
@@ -830,6 +851,23 @@ function createDateBox(labelText) {
     dateBox.appendChild(button);
     return dateBox;
 }
+
+function handleDateChange(index, labelText, selectedDate, checklistItems) {
+    console.log(`Date changed for item at index ${index}, type: ${labelText}, new date: ${selectedDate}`);
+    checklistItems[index][labelText.toLowerCase()] = selectedDate; // Store date in lowercase property
+    saveCards();
+}
+
+
+
+
+
+
+
+
+
+
+
 
 // Function to gather all data from the app and format it for CSV
 function gatherAllData() {
@@ -876,17 +914,12 @@ function gatherAllData() {
     console.log(csvString);
     return csvString;
 }
+function exportCSV() {
+    const csvData = gatherAllData();
 
-// Example of how to use gatherAllData (for testing)
-// You can uncomment this to test in the browser's console:
-// const allVolunteerData = gatherAllData();
-// console.log(allVolunteerData);
-
-
-
-
-// Modify openCard function to render the checklist
+// Modify the openCard function to render the checklist
 function openCard(card) {
+    console.log(`Opening card with ID: ${card.id}`); // Debugging: Log the card ID
     const cardId = card.id;
     const cardData = getCardData(cardId);
     if (!cardData) {
@@ -925,8 +958,9 @@ function openCard(card) {
         </div>
     `;
     modalContent.appendChild(detailsTab);
-
-    // Render Attachments tab
+}
+        // Handle Attachments tab
+    // Initialize the attachments display as empty
     const attachmentsTab = document.createElement("div");
     attachmentsTab.id = "attachments";
     attachmentsTab.classList.add("tab-content");
@@ -937,26 +971,52 @@ function openCard(card) {
     const attachmentsList = document.createElement("ul");
     attachmentsList.id = `attachments-list-${cardId}`;
     attachmentsTab.appendChild(attachmentsList);
-
-    if (cardData.attachments && cardData.attachments.length > 0) {
-        cardData.attachments.forEach(attachment => {
-            const attachmentItem = document.createElement("li");
-            attachmentItem.textContent = attachment.name;
-            // Add "Set as Profile Picture" button here
-            // ...
-            attachmentsList.appendChild(attachmentItem);
-        });
-    }
     modalContent.appendChild(attachmentsTab);
 
-    // Render Checklist tab
+    // Function to add attachment items to the list
+    const displayAttachments = () => {
+        attachmentsList.innerHTML = ''; // Clear existing list items
+
+        // Display existing attachments if available
+    if (cardData.attachments && cardData.attachments.length > 0) {
+        cardData.attachments.forEach(attachment => {
+                // Create and append a list item for each attachment
+            const attachmentItem = document.createElement("li");
+            attachmentItem.textContent = attachment.name;
+
+                // Add a "Set as Profile Picture" button for image attachments
+                if (/\.(jpg|jpeg|png|gif)$/i.test(attachment.name)) {
+                    const setProfilePicButton = document.createElement("button");
+                    setProfilePicButton.textContent = "Set as Profile Picture";
+                    setProfilePicButton.classList.add("set-profile-pic-button");
+                    setProfilePicButton.addEventListener("click", () => {
+                        handleSetProfilePicture(cardId, attachment.name);
+                    });
+                    attachmentItem.appendChild(setProfilePicButton);
+                }
+
+                // Add a delete button to each attachment
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.classList.add("delete-attachment-button");
+                deleteButton.addEventListener("click", () => {
+                    handleDeleteAttachment(cardId, attachment.name);
+                    displayAttachments(); // Refresh the attachments list
+                });
+                attachmentItem.appendChild(deleteButton);
+            attachmentsList.appendChild(attachmentItem);
+            });
+        }
+    };
+        displayAttachments();
+}
+      // Render Checklist tab
     const checklistTab = document.createElement("div");
     checklistTab.id = "checklist";
     checklistTab.classList.add("tab-content");
     // If the card doesn't have a checklist, initialize it with a copy of the master checklist
     if (!cardData.checklist) {
         cardData.checklist = masterChecklist.map(item => ({ ...item, checked: false })); // Copy master checklist
-        saveCards();
     }
     checklistTab.appendChild(renderChecklist(cardData.checklist));
     modalContent.appendChild(checklistTab);
