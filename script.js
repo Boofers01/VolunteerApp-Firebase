@@ -355,7 +355,6 @@ function loadLists() {
                 });
 
 }
-
 // Helper function to generate sample card data
 function getSampleCardData() {
     return {
@@ -756,6 +755,39 @@ function createDateBox(labelText) {
     return dateBox;
 }
 
+// Function to gather all data from the app
+function gatherAllData() {
+    const lists = JSON.parse(localStorage.getItem("lists")) || []; // Get lists from local storage
+    const allData = []; // Initialize an array to hold all the data
+
+    // Loop through each list
+    lists.forEach(list => {
+        // Loop through each card in the list
+        if (list.cards) {
+            list.cards.forEach(card => {
+                // Get card data
+                const cardData = getCardData(card.id);
+
+                // If card data exists, add it to the allData array
+                if (cardData) {
+                    allData.push(cardData);
+                }
+            });
+        }
+    });
+
+    // Return all the gathered data
+    return allData;
+}
+
+// Example of how to use gatherAllData (for testing)
+// You can uncomment this to test in the browser's console:
+// const allVolunteerData = gatherAllData();
+// console.log(allVolunteerData);
+
+
+
+
 // Modify openCard function to render the checklist
 function openCard(card) {
     const cardId = card.id;
@@ -928,5 +960,55 @@ function createCardFromData(cardData) {
         cardElement.addEventListener("click", () => openCard(cardElement));
         cardsContainer.appendChild(cardElement);
     }
+}
     localStorage.setItem("lists", JSON.stringify(lists));
+}
+
+// Function to export all card data to CSV
+function exportToCSV() {
+    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    const data = [];
+
+    // Extract headers from the first card (assuming all cards have the same structure)
+    let headers = [];
+    if (lists.length > 0 && lists[0].cards && lists[0].cards.length > 0) {
+        headers = Object.keys(lists[0].cards[0]);
+    }
+
+    // Push headers to the data array
+    data.push(headers.join(','));
+
+    // Iterate through lists and cards to extract data
+    lists.forEach(list => {
+        if (list.cards) {
+            list.cards.forEach(card => {
+                const values = headers.map(header => {
+                    let value = card[header];
+                    if (typeof value === 'string') {
+                        // Escape commas within strings by enclosing in double quotes
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                });
+                data.push(values.join(','));
+            });
+        }
+    });
+
+    // Create a CSV string
+    const csvContent = data.join('\n');
+
+    // Create a Blob containing the CSV data
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // Create a download link and trigger the download
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "volunteer_data.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 }
