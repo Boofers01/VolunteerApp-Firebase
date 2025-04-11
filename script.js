@@ -212,7 +212,14 @@ function openCard(card) {
     detailsTab.id = "details";
     detailsTab.classList.add("tab-content");
     detailsTab.style.display = "block"; // Show by default
-    detailsTab.innerHTML = `
+
+    // Add a heading for the details
+    const detailsHeading = document.createElement("h3");
+    detailsHeading.textContent = "Volunteer Details";
+    detailsTab.appendChild(detailsHeading);
+
+    // Create a paragraph element for the details
+    const detailsParagraph = document.createElement("p");
         <p><strong>Name:</strong> ${cardData.name}</p>
         <p><strong>Email:</strong> ${cardData.email}</p>
         <p><strong>Phone:</strong> ${cardData.phone}</p>
@@ -223,15 +230,20 @@ function openCard(card) {
         <div>
             <h3>References</h3>
             ${cardData.references.map(ref => `<p>${ref.name} - ${ref.phone}</p>`).join("")}
-        </div>
     `;
+    detailsTab.appendChild(detailsParagraph);
+
     modalContent.appendChild(detailsTab);
 
     // Attachments Tab Content (Placeholder)
     const attachmentsTab = document.createElement("div");
     attachmentsTab.id = "attachments";
     attachmentsTab.classList.add("tab-content");
-    attachmentsTab.innerHTML = "<p>No attachments yet.</p>"; // Placeholder text
+    const addAttachmentButton = document.createElement("button");
+    addAttachmentButton.textContent = "Add Attachment";
+    attachmentsTab.appendChild(addAttachmentButton);
+
+    // Append the Attachments tab content to the modal content
     modalContent.appendChild(attachmentsTab);
 
     // Checklist Tab Content (Placeholder)
