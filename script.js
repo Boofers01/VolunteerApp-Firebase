@@ -1,4 +1,5 @@
 // Function to create a new list
+
 function createList() {
     // Get the board element
     const board = document.getElementById("board");
@@ -23,13 +24,20 @@ function createList() {
 
     // Save the list title to local storage when it loses focus (is edited)
     listTitle.addEventListener("blur", () => {
-        saveLists();
+        try {
+            saveLists();
+        } catch (error) {
+            console.error("Error saving lists after title edit:", error);
+        }
     });
 
     // Create a delete button for the list
     const deleteListButton = document.createElement("span");
     deleteListButton.textContent = "x";
+    // Set a class for styling and identification
     deleteListButton.classList.add("delete-list-button");
+    // Add event listener for deleting the list
+    // Add event listener for deleting the list
     deleteListButton.addEventListener("click", () => {
         list.remove(); // Remove the list from the DOM
         saveLists(); // Update local storage
@@ -50,7 +58,11 @@ function createList() {
     // Append the new list to the board
     board.appendChild(list);
 
-    saveLists(); // Save the new list to local storage
+    try {
+        saveLists(); // Save the new list to local storage
+    } catch (error) {
+        console.error("Error saving lists after creating a new list:", error);
+    }
 
 
     list.addEventListener("dragstart", (e) => {
@@ -65,7 +77,11 @@ function createList() {
         // Remove the dragging class and reset the opacity
         e.target.classList.remove("dragging");
         e.target.style.opacity = "1";
-        saveLists(); // Save the new order of lists
+        try {
+            saveLists(); // Save the new order of lists
+        } catch (error) {
+            console.error("Error saving lists after dragging a list:", error);
+        }
     });
 
     // Add event listeners to the board to handle the drop
@@ -289,6 +305,7 @@ function openCard(card) {
         event.currentTarget.classList.add("active");
     };
 
+}
 // Function to close the card modal
 function closeModal() {
     document.getElementById("cardModal").style.display = "none";
@@ -310,8 +327,12 @@ function saveLists() {
             id: list.id,
             title: list.querySelector(".list-title").textContent
         });
-
     });
+    // Log lists before setting in local storage
+    console.log("Lists before saving:", lists);
+    // Log the JSON string being saved
+    console.log("Saving lists to local storage:", JSON.stringify(lists));
+
     localStorage.setItem("lists", JSON.stringify(lists));
     saveCards();
 }
@@ -413,8 +434,9 @@ function loadLists() {
 
                 listTitle.addEventListener("blur", () => {
                     saveLists();
-                });
+                });;
 
+                // Create a delete button for the list
                 const deleteListButton = document.createElement("span");
                 deleteListButton.textContent = "x";
                 deleteListButton.classList.add("delete-list-button");
@@ -430,6 +452,7 @@ function loadLists() {
                 cardsContainer.classList.add("cards-container");
 
                 list.appendChild(listHeader);
+                // Append the cards container
                 list.appendChild(cardsContainer);
 
                 board.appendChild(list);
@@ -450,7 +473,6 @@ function loadLists() {
                     e.target.classList.add("dragging");
                     e.dataTransfer.setData("text/plain", e.target.id);
                     e.target.style.opacity = "0.5";
-                });
 
                 list.addEventListener("dragend", (e) => {
                     e.target.classList.remove("dragging");
@@ -487,19 +509,39 @@ function generateCardId() {
 
 // Function to save card data to local storage
 function saveCards() {
-    const lists = JSON.parse(localStorage.getItem("lists")) || [];
-    lists.forEach(list => {
-        const listElement = document.getElementById(list.id);
-        if (listElement) {
-            const cards = Array.from(listElement.querySelectorAll(".card")).map(card => ({
-                id: card.id,
-                ...getSampleCardData() // Add the sample card data here
-            }));
-            list.cards = cards;
-        }
-    });
-    localStorage.setItem("lists", JSON.stringify(lists));
+    try {
+        const lists = JSON.parse(localStorage.getItem("lists")) || [];
+        lists.forEach(list => {
+            const listElement = document.getElementById(list.id);
+            if (listElement) {
+                const cards = Array.from(listElement.querySelectorAll(".card")).map(card => {
+                    let cardData = {};
+                    // Check if the card already has data, if not, initialize it
+                    if (list.cards && list.cards.find(c => c.id === card.id)) {
+                        cardData = list.cards.find(c => c.id === card.id);
+                    } else {
+                        cardData = {
+                            id: card.id,
+                            ...getSampleCardData()
+                        };
+                    }
+                    return cardData;
+                });
+                list.cards = cards;
+            }
+        });
+        localStorage.setItem("lists", JSON.stringify(lists));
+        console.log("Saved lists with cards:", lists);
+    } catch (error) {
+        console.error("Error in saveCards:", error);
+    }
 }
+
+
+
+
+
+
 
 function getCardData(cardId) {
     const lists = JSON.parse(localStorage.getItem("lists")) || [];
@@ -527,56 +569,77 @@ function handleAddAttachment(cardId) {
         if (files.length > 0) {
             const attachmentsList = document.getElementById(`attachments-list-${cardId}`);
             if (attachmentsList) {
-                // Loop through the selected files and add them to the attachments list
-               for (const file of files) {
-                const attachmentItem = document.createElement("li");
-                attachmentItem.textContent = file.name;
+                 // Save the file details to local storage
+                 const lists = JSON.parse(localStorage.getItem("lists")) || [];
+                 let cardFound = false;
+                 for (const list of lists) {
+                     for (const card of list.cards) {
+                         if (card.id === cardId) {
+                             card.attachments = card.attachments || [];
+                             for (const file of files) {
+                                 card.attachments.push({ name: file.name }); // Store attachment name
+                                 // Create list item for the attachment
+                                 const attachmentItem = document.createElement("li");
+                                 attachmentItem.textContent = file.name;
 
-                // Add "Set as Profile Picture" button
-                const setProfilePicButton = document.createElement("button");
-                setProfilePicButton.textContent = "Set as Profile Picture";
-                setProfilePicButton.classList.add("set-profile-pic-button");
-                setProfilePicButton.addEventListener("click", () => {
-                    handleSetProfilePicture(cardId, file.name);
-                });
+                                 // Add "Set as Profile Picture" button
+                                 const setProfilePicButton = document.createElement("button");
+                                 setProfilePicButton.textContent = "Set as Profile Picture";
+                                 setProfilePicButton.classList.add("set-profile-pic-button");
+                                 setProfilePicButton.addEventListener("click", () => {
+                                     handleSetProfilePicture(cardId, file.name);
+                                 });
 
-                // Add a delete button for the attachment
-                const deleteButton = document.createElement("button");
-                deleteButton.textContent = "Delete";
-                deleteButton.classList.add("delete-attachment-button");
-                deleteButton.addEventListener("click", () => {
-                    attachmentItem.remove();
-                    handleDeleteAttachment(cardId, file.name);
-                });
+                                 // Add a delete button for the attachment
+                                 const deleteButton = document.createElement("button");
+                                 deleteButton.textContent = "Delete";
+                                 deleteButton.classList.add("delete-attachment-button");
+                                 deleteButton.addEventListener("click", () => {
+                                     attachmentItem.remove();
+                                     handleDeleteAttachment(cardId, file.name);
+                                 });
 
-                attachmentItem.appendChild(setProfilePicButton);
-                attachmentItem.appendChild(deleteButton);
-                attachmentsList.appendChild(attachmentItem);
-            }
-        }
-    });
+                                 attachmentItem.appendChild(setProfilePicButton);
+                                 attachmentItem.appendChild(deleteButton);
+                                 attachmentsList.appendChild(attachmentItem);
+                             }
+                             cardFound = true;
+                             break; // Stop searching once the card is found
+                         }
+                     }
+                     if (cardFound) break;
+                 }
+                 localStorage.setItem("lists", JSON.stringify(lists));
+             }
+         }
+     });
 
     // Trigger the file input dialog
     fileInput.click();
 }
 
+// Function to handle deleting an attachment
+function handleDeleteAttachment(cardId, attachmentName) {
+    let lists = JSON.parse(localStorage.getItem("lists")) || [];
+    lists.forEach(list => {
+        const card = list.cards.find(c => c.id === cardId);
+        if (card && card.attachments) {
+            card.attachments = card.attachments.filter(att => att.name !== attachmentName);
+        }
+    });
+    localStorage.setItem("lists", JSON.stringify(lists));
+}
+
 // Function to handle setting a profile picture
 function handleSetProfilePicture(cardId, attachmentName) {
     const lists = JSON.parse(localStorage.getItem("lists")) || [];
-    for (const list of lists) {
+    lists.forEach(list => {
         const card = list.cards.find(c => c.id === cardId);
         if (card) {
-            card.profilePicture = attachmentName;
-            // Update the card element on the board if it exists
-            const cardElement = document.getElementById(cardId);
-            if (cardElement) {
-                // Find the element that currently displays the card name and insert the image before it
-                const cardNameElement = cardElement.querySelector(".card-name");
-                }
-            }
-
-    // Trigger the file input dialog
-    fileInput.click();
+            card.profilePicture = attachmentName; // Store profile picture name
+        }
+    });
+    localStorage.setItem("lists", JSON.stringify(lists));
 }
 
 // Global variable to store the master checklist items
