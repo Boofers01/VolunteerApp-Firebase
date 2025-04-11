@@ -157,7 +157,8 @@ function addCard(listId) {
         e.preventDefault();
         // Get the ID of the card being dragged
         const draggedCardId = e.dataTransfer.getData("text/plain");
-        const draggedCard = document.getElementById(draggedCardId);
+        if (!draggedCardId) return; //if there's no dragged card id, then do nothing
+        const draggedCard = document.getElementById(draggedCardId)
         // Get the card that is being dropped on
         const targetCard = e.target.closest(".card");
         if (targetCard && draggedCard !== targetCard) {
@@ -167,14 +168,77 @@ function addCard(listId) {
     });
 }
 
-function addCard() {
-    // Placeholder function for adding cards
+// Function to open the card modal with volunteer information
+function openCard(card) {
+    const cardId = card.id;
+
+    // Retrieve card data from local storage
+    const cardData = getCardData(cardId);
+
+    // If card data doesn't exist (e.g., card created before data persistence was implemented),
+    // create an empty data object to prevent errors.
+    if (!cardData) {
+        return; // Stop the function if no card data is found
+    }
+
+    // Get the modal and modal content elements
+    const modal = document.getElementById("cardModal");
+    const modalContent = document.getElementById("modalContent");
+
+    // Clear previous content in the modal
+    modalContent.innerHTML = "";
+
+    // Create elements to display volunteer information
+    const nameElement = document.createElement("h2");
+    nameElement.textContent = cardData.name;
+
+    const emailElement = document.createElement("p");
+    emailElement.textContent = `Email: ${cardData.email}`;
+
+    const phoneElement = document.createElement("p");
+    phoneElement.textContent = `Phone: ${cardData.phone}`;
+
+    const addressElement = document.createElement("p");
+    addressElement.textContent = `Address: ${cardData.address}, ${cardData.city}, ${cardData.state} ${cardData.zip}`;
+
+    const interestsElement = document.createElement("p");
+    interestsElement.textContent = `Interests: ${cardData.interests}`;
+
+    const availabilityElement = document.createElement("p");
+    availabilityElement.textContent = `Availability: ${cardData.availability}`;
+
+    const previousExperienceElement = document.createElement("p");
+    previousExperienceElement.textContent = `Previous Experience: ${cardData.previousExperience}`;
+
+    // Create a container for references
+    const referencesContainer = document.createElement("div");
+    referencesContainer.innerHTML = "<h3>References</h3>";
+
+    // Loop through references and create elements to display each reference
+    cardData.references.forEach(reference => {
+        const referenceElement = document.createElement("p");
+        referenceElement.textContent = `${reference.name} - ${reference.phone}`;
+        referencesContainer.appendChild(referenceElement);
+    });
+
+    // Append all the created elements to the modal content
+    modalContent.appendChild(nameElement);
+    modalContent.appendChild(emailElement);
+    modalContent.appendChild(phoneElement);
+    modalContent.appendChild(addressElement);
+    modalContent.appendChild(interestsElement);
+    modalContent.appendChild(availabilityElement);
+    modalContent.appendChild(previousExperienceElement);
+    modalContent.appendChild(referencesContainer);
+
+    // Display the modal
+    modal.style.display = "block";
 }
 
-function moveCard() {
-    // Placeholder function for moving cards
+// Function to close the card modal
+function closeModal() {
+    document.getElementById("cardModal").style.display = "none";
 }
-
 function openCard() {
     // Placeholder function for opening cards
 }
@@ -191,13 +255,52 @@ function saveLists() {
             id: list.id,
             title: list.querySelector(".list-title").textContent
         });
+
     });
     localStorage.setItem("lists", JSON.stringify(lists));
+    saveCards(); // Save card data along with lists
+}
+
+// Helper function to generate sample card data
+function getSampleCardData() {
+    return {
+        name: "John Doe",
+        email: "john.doe@email.com",
+        phone: "123-456-7890",
+        address: "123 Main St",
+        city: "Anytown",
+        state: "CA",
+        zip: "90210",
+        interests: "Child Care, Tutoring",
+        availability: "Weekdays",
+        previousExperience: "5 years",
+        references: [
+            { name: "Jane Smith", phone: "555-1234" },
+            { name: "Peter Jones", phone: "555-5678" }
+        ]
+    };
+}
+
+// Function to add a card to a list with specific data
+function addCardToList(cardsContainer, cardData) {
+    const card = document.createElement("div");
+    card.classList.add("card");
+    card.id = cardData.id;
+    card.innerHTML = `
+        <h4 class="card-name">${cardData.name}</h4>
+        <p class="card-email">${cardData.email}</p>
+        <p class="card-phone">${cardData.phone}</p>
+    `;
+    card.setAttribute("draggable", "true");
+    cardsContainer.appendChild(card);
+    // Add event listener to open the card modal when the card is clicked
+    card.addEventListener("click", () => openCard(card));
+
 }
 
 // Function to load the lists from local storage
 function loadLists() {
-    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    let lists = JSON.parse(localStorage.getItem("lists")) || [];
     const board = document.getElementById("board");
     if (board) {
         lists.forEach(listData => {
@@ -242,6 +345,8 @@ function loadLists() {
                 addCardButton.classList.add("add-card-button");
                 addCardButton.addEventListener("click", () => addCard(list.id));
                 list.appendChild(addCardButton);
+                const cardsContainer = list.querySelector(".cards-container");
+                listData.cards = listData.cards || [];
 
 
 
@@ -274,15 +379,45 @@ function loadLists() {
             if (targetList && draggedList !== targetList) board.insertBefore(draggedList, targetList);
             saveLists()
         });
-        // Load cards for each list
-        lists.forEach(listData => {
-            const listElement = document.getElementById(listData.id);
-            if (listElement && listData.cards) {
-                const cardsContainer = listElement.querySelector(".cards-container");
-                listData.cards.forEach(cardData => {
-                    addCardToList(cardsContainer, cardData);
-                });
+        if (lists.length === 0) {
+            // Create the "New Applicants" list if no lists are loaded
+            const newList = createList();
+        }
+    }
+}
+
+// Function to generate a unique card ID
+function generateCardId() {
+    return "card-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+}
+
+// Function to save card data to local storage
+function saveCards() {
+    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    lists.forEach(list => {
+        const listElement = document.getElementById(list.id);
+        if (listElement) {
+            const cards = Array.from(listElement.querySelectorAll(".card")).map(card => ({
+                id: card.id,
+                ...getSampleCardData() // Add the sample card data here
+            }));
+            list.cards = cards;
+        }
+    });
+    localStorage.setItem("lists", JSON.stringify(lists));
+}
+
+function getCardData(cardId) {
+    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    for (const list of lists) {
+        if (list.cards) {
+            const card = list.cards.find(c => c.id === cardId);
+            if (card) {
+                return card;
             }
-        });
+        }
+    }
+    return null;
+}
     }
 }
