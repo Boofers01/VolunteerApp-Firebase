@@ -188,7 +188,6 @@ function openCard(card) {
     // Clear previous content in the modal
     modalContent.innerHTML = "";
 
-    // Create elements to display volunteer information
     const nameElement = document.createElement("h2");
     nameElement.textContent = cardData.name;
 
@@ -198,38 +197,68 @@ function openCard(card) {
     const phoneElement = document.createElement("p");
     phoneElement.textContent = `Phone: ${cardData.phone}`;
 
-    const addressElement = document.createElement("p");
-    addressElement.textContent = `Address: ${cardData.address}, ${cardData.city}, ${cardData.state} ${cardData.zip}`;
+    // Create tabs
+    const tabs = document.createElement("div");
+    tabs.classList.add("modal-tabs");
+    tabs.innerHTML = `
+        <button class="tab-button active" onclick="openTab(event, 'details')">Details</button>
+        <button class="tab-button" onclick="openTab(event, 'attachments')">Attachments</button>
+        <button class="tab-button" onclick="openTab(event, 'checklist')">Checklist</button>
+    `;
+    modalContent.appendChild(tabs);
 
-    const interestsElement = document.createElement("p");
-    interestsElement.textContent = `Interests: ${cardData.interests}`;
+    // Details Tab Content
+    const detailsTab = document.createElement("div");
+    detailsTab.id = "details";
+    detailsTab.classList.add("tab-content");
+    detailsTab.style.display = "block"; // Show by default
+    detailsTab.innerHTML = `
+        <p><strong>Name:</strong> ${cardData.name}</p>
+        <p><strong>Email:</strong> ${cardData.email}</p>
+        <p><strong>Phone:</strong> ${cardData.phone}</p>
+        <p><strong>Address:</strong> ${cardData.address}, ${cardData.city}, ${cardData.state} ${cardData.zip}</p>
+        <p><strong>Interests:</strong> ${cardData.interests}</p>
+        <p><strong>Availability:</strong> ${cardData.availability}</p>
+        <p><strong>Previous Experience:</strong> ${cardData.previousExperience}</p>
+        <div>
+            <h3>References</h3>
+            ${cardData.references.map(ref => `<p>${ref.name} - ${ref.phone}</p>`).join("")}
+        </div>
+    `;
+    modalContent.appendChild(detailsTab);
 
-    const availabilityElement = document.createElement("p");
-    availabilityElement.textContent = `Availability: ${cardData.availability}`;
+    // Attachments Tab Content (Placeholder)
+    const attachmentsTab = document.createElement("div");
+    attachmentsTab.id = "attachments";
+    attachmentsTab.classList.add("tab-content");
+    attachmentsTab.innerHTML = "<p>No attachments yet.</p>"; // Placeholder text
+    modalContent.appendChild(attachmentsTab);
 
-    const previousExperienceElement = document.createElement("p");
-    previousExperienceElement.textContent = `Previous Experience: ${cardData.previousExperience}`;
+    // Checklist Tab Content (Placeholder)
+    const checklistTab = document.createElement("div");
+    checklistTab.id = "checklist";
+    checklistTab.classList.add("tab-content");
+    checklistTab.innerHTML = "<p>Checklist will be here.</p>"; // Placeholder text
+    modalContent.appendChild(checklistTab);
 
-    // Create a container for references
-    const referencesContainer = document.createElement("div");
-    referencesContainer.innerHTML = "<h3>References</h3>";
+    // Function to switch tabs
+    window.openTab = (event, tabId) => {
+        // Hide all tab content
+        const tabContent = document.querySelectorAll(".tab-content");
+        tabContent.forEach(content => {
+            content.style.display = "none";
+        });
 
-    // Loop through references and create elements to display each reference
-    cardData.references.forEach(reference => {
-        const referenceElement = document.createElement("p");
-        referenceElement.textContent = `${reference.name} - ${reference.phone}`;
-        referencesContainer.appendChild(referenceElement);
-    });
+        // Deactivate all tab buttons
+        const tabButtons = document.querySelectorAll(".tab-button");
+        tabButtons.forEach(button => {
+            button.classList.remove("active");
+        });
 
-    // Append all the created elements to the modal content
-    modalContent.appendChild(nameElement);
-    modalContent.appendChild(emailElement);
-    modalContent.appendChild(phoneElement);
-    modalContent.appendChild(addressElement);
-    modalContent.appendChild(interestsElement);
-    modalContent.appendChild(availabilityElement);
-    modalContent.appendChild(previousExperienceElement);
-    modalContent.appendChild(referencesContainer);
+        // Show the selected tab content and activate the button
+        document.getElementById(tabId).style.display = "block";
+        event.currentTarget.classList.add("active");
+    };
 
     // Display the modal
     modal.style.display = "block";
@@ -239,12 +268,13 @@ function openCard(card) {
 function closeModal() {
     document.getElementById("cardModal").style.display = "none";
 }
+
+// Placeholder function for opening cards
 function openCard() {
-    // Placeholder function for opening cards
 }
 
+// Placeholder function for deleting cards
 function deleteCard() {
-    // Placeholder function for deleting cards
 }
 
 // Function to save the lists to local storage
@@ -258,7 +288,47 @@ function saveLists() {
 
     });
     localStorage.setItem("lists", JSON.stringify(lists));
-    saveCards(); // Save card data along with lists
+    saveCards();
+}
+
+// Function to add a card to a list with specific data
+function addCardToList(cardsContainer, cardData) {
+    const card = document.createElement("div");
+    card.classList.add("card");
+    card.id = cardData.id;
+    card.innerHTML = `
+        <h4 class="card-name">${cardData.name}</h4>
+        <p class="card-email">${cardData.email}</p>
+        <p class="card-phone">${cardData.phone}</p>
+    `;
+    card.setAttribute("draggable", "true");
+    cardsContainer.appendChild(card);
+    card.addEventListener("click", () => openCard(card));
+}
+
+// Function to load the lists from local storage
+function loadLists() {
+    let lists = JSON.parse(localStorage.getItem("lists")) || [];
+    const board = document.getElementById("board");
+    if (board) {
+        lists.forEach(listData => {
+            if (listData && listData.id && listData.title) {
+                const list = document.createElement("div");
+                list.classList.add("list");
+                list.id = listData.id;
+
+                const listHeader = document.createElement("div");
+                listHeader.classList.add("list-header");
+
+                const listTitle = document.createElement("h3");
+                listTitle.textContent = listData.title;
+                listTitle.contentEditable = true;
+                listTitle.classList.add("list-title");
+
+                listTitle.addEventListener("blur", () => {
+                    saveLists();
+                });
+
 }
 
 // Helper function to generate sample card data
