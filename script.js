@@ -575,7 +575,6 @@ function handleSetProfilePicture(cardId, attachmentName) {
                 const cardNameElement = cardElement.querySelector(".card-name");
                 }
             }
-        }
     });
 
     // Trigger the file input dialog
@@ -701,6 +700,7 @@ function loadMasterChecklist() {
 createMasterChecklistEditor();
 
 // Function to render the checklist in a card
+
 function renderChecklist(checklistItems) {
     const checklistDiv = document.createElement("div");
     if (checklistItems && checklistItems.length > 0) {
@@ -764,7 +764,6 @@ function openCard(card) {
         return;
     }
 
-    const modal = document.getElementById("cardModal");
     const modalContent = document.getElementById("modalContent");
     modalContent.innerHTML = "";
 
@@ -835,4 +834,99 @@ function openCard(card) {
 
     // Make sure the modal is displayed
     modal.style.display = "block";
+}
+
+// Add CSV Upload functionality here
+// Function to handle CSV file upload
+function uploadCSV() {
+    const fileInput = document.getElementById('csvFileInput');
+    const file = fileInput.files[0];
+
+    if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const data = e.target.result;
+            const lines = data.split('\n');
+            const headers = lines[0].split(',').map(header => header.trim());
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(value => value.trim());
+                if (values.length === headers.length) {
+                    const cardData = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        cardData[headers[j]] = values[j];
+                    }
+                    createCardFromData(cardData);
+                }
+            }
+        };
+
+        reader.readAsText(file);
+    } else {
+        alert('Please select a CSV file.');
+    }
+}
+
+// Function to create a card from CSV data
+function createCardFromData(cardData) {
+    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    // Find the "New Applicants" list
+    let newList = lists.find(list => list.title === "New Applicants");
+
+    // If the "New Applicants" list doesn't exist, create it
+    if (!newList) {
+        newList = {
+            id: "list-" + Date.now(),
+            title: "New Applicants",
+            cards: [] // Initialize cards array
+        };
+        lists.push(newList);
+    }
+
+    // Generate a unique ID for the new card
+    const cardId = generateCardId();
+
+    // Add the card data to the list's cards array
+    newList.cards.push({
+        id: cardId,
+        ...cardData // Spread the card data from CSV
+    });
+
+    // Find the DOM element for the "New Applicants" list
+    const listElement = document.getElementById(newList.id);
+    let cardsContainer;
+
+    if (listElement) {
+        // If the list element exists, find its cards container
+        cardsContainer = listElement.querySelector(".cards-container");
+    } else {
+        // If the list element doesn't exist (it's not rendered yet), create it
+        const board = document.getElementById("board");
+        const newListElement = document.createElement("div");
+        newListElement.classList.add("list");
+        newListElement.id = newList.id;
+
+        const listHeader = document.createElement("div");
+        listHeader.classList.add("list-header");
+        listHeader.innerHTML = `<h3 class="list-title">${newList.title}</h3>`;
+
+        cardsContainer = document.createElement("div");
+        cardsContainer.classList.add("cards-container");
+
+        newListElement.appendChild(listHeader);
+        newListElement.appendChild(cardsContainer);
+        board.appendChild(newListElement);
+    }
+
+    // Now that we have the cardsContainer, render the new card in it
+    if (cardsContainer) {
+        const cardElement = document.createElement("div");
+        cardElement.classList.add("card");
+        cardElement.id = cardId;
+        cardElement.innerHTML = `<h4 class="card-name">${cardData["Name - First Name"]} ${cardData["Name - Last Name"]}</h4><p class="card-email">${cardData["Preferred Email Address"]}</p><p class="card-phone">${cardData["Preferred Phone Number"]}</p>`; // Update with your desired fields
+        cardElement.addEventListener("click", () => openCard(cardElement));
+        cardsContainer.appendChild(cardElement);
+    }
+    localStorage.setItem("lists", JSON.stringify(lists));
 }
