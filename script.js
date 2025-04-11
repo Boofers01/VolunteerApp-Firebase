@@ -755,29 +755,50 @@ function createDateBox(labelText) {
     return dateBox;
 }
 
-// Function to gather all data from the app
+// Function to gather all data from the app and format it for CSV
 function gatherAllData() {
-    const lists = JSON.parse(localStorage.getItem("lists")) || []; // Get lists from local storage
-    const allData = []; // Initialize an array to hold all the data
+    const lists = JSON.parse(localStorage.getItem("lists")) || [];
+    const csvData = [];
 
-    // Loop through each list
+    // Define CSV headers based on the card data structure
+    const headers = [
+        "id", "name", "email", "phone", "address", "city", "state", "zip",
+        "interests", "availability", "previousExperience", "references"
+    ];
+    csvData.push(headers.join(",")); // Add headers as the first row
+
+    // Iterate through lists and cards to gather data
     lists.forEach(list => {
-        // Loop through each card in the list
-        if (list.cards) {
+        if (list.cards && list.cards.length > 0) {
             list.cards.forEach(card => {
-                // Get card data
                 const cardData = getCardData(card.id);
-
-                // If card data exists, add it to the allData array
                 if (cardData) {
-                    allData.push(cardData);
+                    const row = headers.map(header => {
+                        let value = cardData[header];
+                        // Format the references as a string to avoid issues in CSV
+                        if (header === "references") {
+                            value = cardData.references.map(ref => `${ref.name} - ${ref.phone}`).join("; ");
+                        }
+                        // Handle undefined or null values
+                        if (value === undefined || value === null) {
+                            return "";
+                        }
+                        // If the value is a string, escape double quotes and enclose in double quotes
+                        if (typeof value === 'string') {
+                            return `"${value.replace(/"/g, '""')}"`;
+                        }
+                        return value;
+                    });
+                    csvData.push(row.join(","));
                 }
             });
         }
     });
+    const csvString = csvData.join("\n");
 
-    // Return all the gathered data
-    return allData;
+    // Return the CSV data as a string
+    console.log(csvString);
+    return csvString;
 }
 
 // Example of how to use gatherAllData (for testing)
