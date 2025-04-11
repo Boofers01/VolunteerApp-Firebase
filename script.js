@@ -501,5 +501,43 @@ function getCardData(cardId) {
     }
     return null;
 }
+
+// Function to handle adding attachments
+function handleAddAttachment(cardId) {
+    // Create an input element for file selection
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true; // Allow multiple file selection
+
+    // Listen for file selection changes
+    fileInput.addEventListener("change", (event) => {
+        const files = event.target.files; // Get the selected files
+        if (files.length > 0) {
+            const attachmentsList = document.getElementById(`attachments-list-${cardId}`);
+            if (attachmentsList) {
+                // Loop through the selected files and add them to the attachments list
+                for (const file of files) {
+                    const attachmentItem = document.createElement("li");
+                    attachmentItem.textContent = file.name;
+
+                    // Add a delete button for the attachment
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Delete";
+                    deleteButton.classList.add("delete-attachment-button");
+                    deleteButton.addEventListener("click", () => {
+                        attachmentItem.remove();
+                        // TODO: Remove attachment from data (if implemented)
+                    });
+
+                    attachmentItem.appendChild(deleteButton);
+                    attachmentsList.appendChild(attachmentItem);
+                }
+            }
+        }
+    });
+
+    // Trigger the file input dialog
+    fileInput.click();
+}
     }
 }
