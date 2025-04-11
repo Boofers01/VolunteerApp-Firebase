@@ -153,6 +153,7 @@ function addCard(listId) {
         e.target.classList.add("dragging");
         e.dataTransfer.setData("text/plain", e.target.id);
         e.dataTransfer.effectAllowed = "move";
+        console.log(`Card ${e.target.id} drag started.`, e); // Log when drag starts
         e.target.style.opacity = "0.5";
     });
 
@@ -160,12 +161,16 @@ function addCard(listId) {
         // Remove the dragging class and reset the opacity
         e.target.classList.remove("dragging");
         e.target.style.opacity = "1";
+        console.log(`Card ${e.target.id} drag ended.`, e); // Log when drag ends
         saveLists(); // Save the new order of cards
     });
 
     // Add event listeners to the cards container to handle the drop
     cardsContainer.addEventListener("dragover", (e) => {
         e.preventDefault();
+        // Get the ID of the card being dragged
+        const draggedCardId = e.dataTransfer.getData("text/plain");
+        console.log(`Card ${draggedCardId} being dragged over.`, e); // Log when drag over occurs
         e.dataTransfer.dropEffect = "move";
     });
 
@@ -174,11 +179,20 @@ function addCard(listId) {
         // Get the ID of the card being dragged
         const draggedCardId = e.dataTransfer.getData("text/plain");
         if (!draggedCardId) return; //if there's no dragged card id, then do nothing
-        const draggedCard = document.getElementById(draggedCardId)
+        const draggedCard = document.getElementById(draggedCardId);
+        console.log(`Card ${draggedCardId} dropped.`, e); // Log when drop occurs
         // Get the card that is being dropped on
         const targetCard = e.target.closest(".card");
         if (targetCard && draggedCard !== targetCard) {
+            console.log(`Card ${draggedCardId} dropped on ${targetCard.id}.`, e); // Log when drop occurs on a target card
             cardsContainer.insertBefore(draggedCard, targetCard);
+        } else if (!targetCard) {
+            console.log(`Card ${draggedCardId} dropped into an empty container`, e);
+            cardsContainer.appendChild(draggedCard);
+        } else {
+            console.log(`Card ${draggedCardId} dropped on itself or invalid target.`, e); // Log when dropped on itself
+            return;
+        }
             saveLists();
         }
     });
